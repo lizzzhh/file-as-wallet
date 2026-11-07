@@ -1,0 +1,556 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:models="using:FileAsWallet.Models"
+        xmlns:vm="using:FileAsWallet.ViewModels"
+        x:DataType="vm:MainViewModel"
+        mc:Ignorable="d" d:DesignWidth="1320" d:DesignHeight="840"
+        x:Class="FileAsWallet.MainWindow"
+        Title="File as Wallet — 文件指纹钱包"
+        Width="1320" Height="840"
+        MinWidth="1080" MinHeight="620"
+        WindowStartupLocation="CenterScreen"
+        TransparencyLevelHint="Mica"
+        Background="Transparent"
+        TransparencyBackgroundFallback="#F3F3F3"
+        FontFamily="Segoe UI Variable Text, Segoe UI, Microsoft YaHei UI, PingFang SC, Noto Sans CJK SC">
+
+    <Panel>
+        <Grid RowDefinitions="Auto,*,Auto">
+
+            <!-- ══════════════════ 顶部 ══════════════════ -->
+            <StackPanel Grid.Row="0">
+
+                <!-- 地址行 -->
+                <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="10" Margin="12,10,12,0" Height="32">
+                    <StackPanel Orientation="Horizontal" Spacing="0" VerticalAlignment="Center">
+                        <Button Classes="iconbtn" Command="{Binding GoBackCommand}"
+                                IsEnabled="{Binding CanGoBack}" ToolTip.Tip="后退 (Alt+←)">
+                            <TextBlock Text="&#xE76B;" Classes="glyph" FontSize="15" Foreground="#3B3B3B" />
+                        </Button>
+                        <Button Classes="iconbtn" Command="{Binding GoForwardCommand}"
+                                IsEnabled="{Binding CanGoForward}" ToolTip.Tip="前进 (Alt+→)">
+                            <TextBlock Text="&#xE76C;" Classes="glyph" FontSize="15" Foreground="#3B3B3B" />
+                        </Button>
+                        <Button Classes="iconbtn" Command="{Binding GoUpCommand}"
+                                IsEnabled="{Binding CanGoUp}" ToolTip.Tip="上一级 (Backspace)">
+                            <TextBlock Text="&#xE74A;" Classes="glyph" FontSize="15" Foreground="#3B3B3B" />
+                        </Button>
+                        <Button Classes="iconbtn" Command="{Binding RefreshCommand}" ToolTip.Tip="刷新 (F5)">
+                            <TextBlock Text="&#xE72C;" Classes="glyph" FontSize="15" Foreground="#3B3B3B" />
+                        </Button>
+                    </StackPanel>
+
+                    <Border Grid.Column="1" Classes="field" Padding="10,0" Height="32"
+                            VerticalAlignment="Center">
+                        <Grid ColumnDefinitions="Auto,*" ColumnSpacing="8" VerticalAlignment="Center">
+                            <TextBlock Text="&#xE8B7;" Classes="glyph" FontSize="15" Foreground="#6E6E6E" />
+                            <TextBox Grid.Column="1" Classes="plain" Text="{Binding PathInput}"
+                                     FontFamily="{StaticResource MonoFont}" FontSize="12"
+                                     VerticalAlignment="Center" KeyDown="OnPathKeyDown"
+                                     Watermark="输入路径后回车可直接跳转" />
+                        </Grid>
+                    </Border>
+
+                    <Border Grid.Column="2" Classes="field" Width="232" Padding="10,0" Height="32"
+                            VerticalAlignment="Center">
+                        <Grid ColumnDefinitions="Auto,*" ColumnSpacing="8" VerticalAlignment="Center">
+                            <TextBlock Text="&#xE721;" Classes="glyph" FontSize="14" Foreground="#6E6E6E" />
+                            <TextBox Grid.Column="1" Classes="plain"
+                                     Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}"
+                                     Watermark="搜索当前文件夹" FontSize="12.5" VerticalAlignment="Center" />
+                        </Grid>
+                    </Border>
+                </Grid>
+
+                <!-- 命令栏 -->
+                <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="4" Margin="10,4,10,4">
+                    <StackPanel Orientation="Horizontal" Spacing="2">
+                        <Button Classes="cmd" Click="OnPickFolderClick" ToolTip.Tip="打开一个文件夹">
+                            <StackPanel Spacing="2">
+                                <TextBlock Text="&#xE8B7;" Classes="glyph" FontSize="20"
+                                           Foreground="{StaticResource AccentBrush}" />
+                                <TextBlock Text="选择文件夹" FontSize="11" HorizontalAlignment="Center" />
+                            </StackPanel>
+                        </Button>
+
+                        <Button Classes="cmd" Command="{Binding DeriveOrStopCommand}"
+                                ToolTip.Tip="按列表顺序生成地址（含计算 SHA-256），生成中再点一次即可停止">
+                            <StackPanel Spacing="2">
+                                <Panel Height="20">
+                                    <TextBlock Text="&#xE8D7;" Classes="glyph" FontSize="20"
+                                               HorizontalAlignment="Center" Foreground="#3B3B3B"
+                                               IsVisible="{Binding !IsDeriving}" />
+                                    <TextBlock Text="&#xE71A;" Classes="glyph" FontSize="18"
+                                               HorizontalAlignment="Center" Foreground="#B3352A"
+                                               IsVisible="{Binding IsDeriving}" />
+                                </Panel>
+                                <TextBlock Text="{Binding DeriveButtonText}" FontSize="11"
+                                           HorizontalAlignment="Center" />
+                            </StackPanel>
+                        </Button>
+
+                        <Border Width="1" Height="20" Background="{StaticResource BorderBrushSoft}"
+                                Margin="6,0" VerticalAlignment="Center" />
+
+                        <CheckBox Classes="toggle" Content="含子目录" IsChecked="{Binding Recursive}"
+                                  VerticalAlignment="Center" Margin="2,0,0,0" />
+                    </StackPanel>
+
+                    <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="6"
+                                VerticalAlignment="Center">
+                        <TextBlock Text="靓号" FontSize="12" Foreground="{StaticResource TextSecondaryBrush}"
+                                   VerticalAlignment="Center" Margin="0,0,2,0" />
+                        <Border Background="#66FFFFFF" BorderBrush="{StaticResource CardBorderBrush}"
+                                BorderThickness="1" CornerRadius="4" Padding="2" Height="28"
+                                VerticalAlignment="Center"
+                                ToolTip.Tip="不填匹配串时，标记前缀/尾号 4 位以上的连号；填写后只按自定义串判断">
+                            <StackPanel Orientation="Horizontal" Spacing="1">
+                                <Button Classes="seg" Classes.on="{Binding VanityUnrestricted}"
+                                        Command="{Binding SetVanityAnyCommand}" Content="均可" />
+                                <Button Classes="seg" Classes.on="{Binding VanityMatchPrefix}"
+                                        Command="{Binding ToggleVanityPrefixCommand}" Content="前缀" />
+                                <Button Classes="seg" Classes.on="{Binding VanityMatchSuffix}"
+                                        Command="{Binding ToggleVanitySuffixCommand}" Content="尾号" />
+                            </StackPanel>
+                        </Border>
+
+                        <Border Classes="field" Width="106" Height="28" Padding="8,0"
+                                VerticalAlignment="Center">
+                            <TextBox Classes="plain" Text="{Binding VanityPattern, UpdateSourceTrigger=PropertyChanged}"
+                                     Watermark="任意长度" FontSize="12"
+                                     FontFamily="{StaticResource MonoFont}" VerticalAlignment="Center"
+                                     ToolTip.Tip="输入即时生效；清空后恢复默认的 4 位连号规则" />
+                        </Border>
+
+                        <Button Classes="std" Height="28" Padding="10,0" FontSize="12"
+                                Content="下一个靓号" Command="{Binding NextVanityCommand}"
+                                IsEnabled="{Binding HasVanity}" VerticalAlignment="Center"
+                                ToolTip.Tip="循环跳转到下一个命中的靓号地址（F3）" />
+
+                        <Border Background="#FFF4CE" BorderBrush="{StaticResource WarnBorderBrush}"
+                                BorderThickness="1" CornerRadius="4" Padding="7,2" VerticalAlignment="Center"
+                                IsVisible="{Binding HasVanityCursor}">
+                            <TextBlock Text="{Binding VanityCursorText}" FontSize="10.5"
+                                       FontFamily="{StaticResource MonoFont}"
+                                       Foreground="{StaticResource WarnTextBrush}" />
+                        </Border>
+
+                        <Button Classes="iconbtn" ToolTip.Tip="缓存与设置">
+                            <Button.Flyout>
+                                <MenuFlyout Placement="BottomEdgeAlignedRight">
+                                    <MenuItem ToggleType="CheckBox"
+                                              IsChecked="{Binding CacheEnabled, Mode=TwoWay}"
+                                              Header="使用结果缓存" />
+                                    <MenuItem Header="{Binding CacheInfoText}" IsEnabled="False" />
+                                    <Separator />
+                                    <MenuItem Header="清空缓存" Command="{Binding ClearCacheCommand}">
+                                        <MenuItem.Icon>
+                                            <TextBlock Text="&#xE74D;" Classes="glyph" FontSize="14"
+                                                       Width="16" Foreground="#3B3B3B" />
+                                        </MenuItem.Icon>
+                                    </MenuItem>
+                                    <MenuItem Header="打开缓存位置" Click="OnOpenCacheFolder">
+                                        <MenuItem.Icon>
+                                            <TextBlock Text="&#xE838;" Classes="glyph" FontSize="14"
+                                                       Width="16" Foreground="#3B3B3B" />
+                                        </MenuItem.Icon>
+                                    </MenuItem>
+                                    <Separator />
+                                    <MenuItem Header="{Binding SkipMenuHeader}">
+                                        <MenuItem.Icon>
+                                            <TextBlock Text="&#xE7BA;" Classes="glyph" FontSize="14"
+                                                       Width="16" Foreground="#3B3B3B" />
+                                        </MenuItem.Icon>
+                                        <MenuItem Header="不跳过" Command="{Binding SetSkipLargeCommand}"
+                                                  CommandParameter="0" />
+                                        <MenuItem Header="超过 10 MB" Command="{Binding SetSkipLargeCommand}"
+                                                  CommandParameter="10" />
+                                        <MenuItem Header="超过 50 MB" Command="{Binding SetSkipLargeCommand}"
+                                                  CommandParameter="50" />
+                                        <MenuItem Header="超过 100 MB" Command="{Binding SetSkipLargeCommand}"
+                                                  CommandParameter="100" />
+                                        <MenuItem Header="超过 500 MB" Command="{Binding SetSkipLargeCommand}"
+                                                  CommandParameter="500" />
+                                    </MenuItem>
+                                    <Separator />
+                                    <MenuItem Header="secp256k1 · Keccak-256 · EIP-55" IsEnabled="False" />
+                                    <Separator />
+                                    <MenuItem Header="赞助这个项目" Click="OnSponsorClick"
+                                              ToolTip.Tip="复制赞助用的 EVM 地址">
+                                        <MenuItem.Icon>
+                                            <TextBlock Text="&#xEB51;" Classes="glyph" FontSize="14"
+                                                       Width="16" Foreground="#C0392B" />
+                                        </MenuItem.Icon>
+                                    </MenuItem>
+                                </MenuFlyout>
+                            </Button.Flyout>
+                            <TextBlock Text="&#xE712;" Classes="glyph" FontSize="16" Foreground="#3B3B3B" />
+                        </Button>
+                    </StackPanel>
+                </Grid>
+
+                <Border Height="1" Background="{StaticResource BorderBrushSoft}" />
+            </StackPanel>
+
+            <!-- ══════════════════ 主体 ══════════════════ -->
+            <Grid Grid.Row="1" ColumnDefinitions="*,Auto">
+
+                <Grid Grid.Column="0" RowDefinitions="Auto,*">
+
+                    <Border Grid.Row="0" BorderBrush="{StaticResource BorderBrushHair}"
+                            BorderThickness="0,0,0,1" Padding="15,0,16,0" Height="34">
+                        <Grid ColumnDefinitions="*,110,78,158,148,148">
+                            <Button Classes="colhead" Command="{Binding SortByCommand}"
+                                    CommandParameter="Name" HorizontalAlignment="Stretch"
+                                    HorizontalContentAlignment="Left">
+                                <StackPanel Orientation="Horizontal" Spacing="4">
+                                    <TextBlock Text="名称" />
+                                    <TextBlock Text="{Binding NameArrow}" FontSize="8"
+                                               Foreground="{StaticResource AccentBrush}"
+                                               VerticalAlignment="Center" />
+                                </StackPanel>
+                            </Button>
+                            <Button Grid.Column="1" Classes="colhead" Command="{Binding SortByCommand}"
+                                    CommandParameter="Modified" HorizontalAlignment="Stretch"
+                                    HorizontalContentAlignment="Left">
+                                <StackPanel Orientation="Horizontal" Spacing="4">
+                                    <TextBlock Text="修改日期" />
+                                    <TextBlock Text="{Binding ModifiedArrow}" FontSize="8"
+                                               Foreground="{StaticResource AccentBrush}"
+                                               VerticalAlignment="Center" />
+                                </StackPanel>
+                            </Button>
+                            <Button Grid.Column="2" Classes="colhead" Command="{Binding SortByCommand}"
+                                    CommandParameter="Size" HorizontalAlignment="Stretch"
+                                    HorizontalContentAlignment="Right">
+                                <StackPanel Orientation="Horizontal" Spacing="4">
+                                    <TextBlock Text="大小" />
+                                    <TextBlock Text="{Binding SizeArrow}" FontSize="8"
+                                               Foreground="{StaticResource AccentBrush}"
+                                               VerticalAlignment="Center" />
+                                </StackPanel>
+                            </Button>
+                            <TextBlock Grid.Column="3" Text="SHA-256" FontSize="12" FontWeight="SemiBold"
+                                       Foreground="{StaticResource TextSecondaryBrush}"
+                                       VerticalAlignment="Center" Margin="6,0" />
+                            <TextBlock Grid.Column="4" Text="EVM 地址" FontSize="12" FontWeight="SemiBold"
+                                       Foreground="{StaticResource TextSecondaryBrush}"
+                                       VerticalAlignment="Center" Margin="6,0" />
+                            <TextBlock Grid.Column="5" Text="TRON 地址" FontSize="12" FontWeight="SemiBold"
+                                       Foreground="{StaticResource TextSecondaryBrush}"
+                                       VerticalAlignment="Center" Margin="6,0" />
+                        </Grid>
+                    </Border>
+
+                    <ListBox Grid.Row="1" Classes="files" ItemsSource="{Binding Items}"
+                             SelectionMode="Multiple" x:Name="FileList"
+                             SelectionChanged="OnSelectionChanged"
+                             DoubleTapped="OnRowDoubleTapped"
+                             PointerPressed="OnListPointerPressed"
+                             ScrollViewer.HorizontalScrollBarVisibility="Disabled">
+                        <ListBox.ItemTemplate>
+                            <DataTemplate DataType="models:FileItem">
+                                <Border BorderBrush="#0F000000" BorderThickness="0,0,0,1">
+                                    <Grid ColumnDefinitions="*,110,78,158,148,148" Height="36"
+                                          Margin="16,0">
+
+                                        <Grid.ContextFlyout>
+                                            <MenuFlyout>
+                                                <MenuItem Header="计算 SHA-256" Click="OnMenuHash">
+                                                    <MenuItem.Icon>
+                                                        <TextBlock Text="&#xE8D7;" Classes="glyph" FontSize="14"
+                                                                   Width="16" Foreground="#3B3B3B" />
+                                                    </MenuItem.Icon>
+                                                </MenuItem>
+                                                <MenuItem Header="派生 EVM / TRON 地址" Click="OnMenuDerive">
+                                                    <MenuItem.Icon>
+                                                        <TextBlock Text="&#xE768;" Classes="glyph" FontSize="14"
+                                                                   Width="16" Foreground="#3B3B3B" />
+                                                    </MenuItem.Icon>
+                                                </MenuItem>
+                                                <Separator />
+                                                <MenuItem Header="复制 SHA-256" Click="OnMenuCopyHash">
+                                                    <MenuItem.Icon>
+                                                        <TextBlock Text="&#xE8C8;" Classes="glyph" FontSize="14"
+                                                                   Width="16" Foreground="#3B3B3B" />
+                                                    </MenuItem.Icon>
+                                                </MenuItem>
+                                                <MenuItem Header="复制 EVM 地址" Click="OnMenuCopyEvm" />
+                                                <MenuItem Header="复制 TRON 地址" Click="OnMenuCopyTron" />
+                                                <MenuItem Header="复制完整路径" Click="OnMenuCopyPath" />
+                                                <Separator />
+                                                <MenuItem Header="在资源管理器中显示" Click="OnMenuReveal">
+                                                    <MenuItem.Icon>
+                                                        <TextBlock Text="&#xE8DA;" Classes="glyph" FontSize="14"
+                                                                   Width="16" Foreground="#3B3B3B" />
+                                                    </MenuItem.Icon>
+                                                </MenuItem>
+                                            </MenuFlyout>
+                                        </Grid.ContextFlyout>
+
+                                        <Grid ColumnDefinitions="Auto,*" ColumnSpacing="9" Margin="2,0">
+                                            <Panel Width="18" VerticalAlignment="Center">
+                                                <TextBlock FontSize="16" HorizontalAlignment="Center"
+                                                           Foreground="#C89A2B" Text="&#xE8B7;"
+                                                           Classes="glyph" IsVisible="{Binding IsDirectory}" />
+                                                <TextBlock FontSize="16" HorizontalAlignment="Center"
+                                                           Foreground="#8A8A8A" Text="&#xE7C3;"
+                                                           Classes="glyph" IsVisible="{Binding IsFile}" />
+                                            </Panel>
+                                            <TextBlock Grid.Column="1" Text="{Binding Name}" FontSize="12.5"
+                                                       Foreground="{StaticResource TextPrimaryBrush}"
+                                                       TextTrimming="CharacterEllipsis"
+                                                       VerticalAlignment="Center"
+                                                       ToolTip.Tip="{Binding TipText}" />
+                                        </Grid>
+
+                                        <TextBlock Grid.Column="1" Text="{Binding ModifiedText}"
+                                                   FontSize="12" Foreground="{StaticResource TextSecondaryBrush}"
+                                                   VerticalAlignment="Center" Margin="6,0" />
+
+                                        <TextBlock Grid.Column="2" Text="{Binding SizeText}" FontSize="12"
+                                                   Foreground="{StaticResource TextSecondaryBrush}"
+                                                   HorizontalAlignment="Right"
+                                                   VerticalAlignment="Center" Margin="6,0" />
+
+                                        <Border Grid.Column="3" Background="Transparent" Cursor="Hand"
+                                                Tag="sha" PointerPressed="OnCellPressed" Margin="2,3"
+                                                CornerRadius="4" Padding="4,0" VerticalAlignment="Stretch"
+                                                ToolTip.Tip="{Binding Sha256Text}">
+                                            <TextBlock Text="{Binding Sha256Short}" Classes="mono"
+                                                       FontSize="10.5" Foreground="{Binding ValueForeground}"
+                                                       TextTrimming="CharacterEllipsis"
+                                                       VerticalAlignment="Center" />
+                                        </Border>
+
+                                        <Border Grid.Column="4" Background="{Binding EvmCellBackground}"
+                                                Cursor="Hand" Tag="evm" PointerPressed="OnCellPressed"
+                                                Margin="2,3" CornerRadius="4" Padding="4,0"
+                                                VerticalAlignment="Stretch" ToolTip.Tip="{Binding EvmText}">
+                                            <TextBlock Text="{Binding EvmShort}" Classes="mono" FontSize="10.5"
+                                                       Foreground="{Binding ValueForeground}"
+                                                       TextTrimming="CharacterEllipsis"
+                                                       VerticalAlignment="Center" />
+                                        </Border>
+
+                                        <Border Grid.Column="5" Background="{Binding TronCellBackground}"
+                                                Cursor="Hand" Tag="tron" PointerPressed="OnCellPressed"
+                                                Margin="2,3" CornerRadius="4" Padding="4,0"
+                                                VerticalAlignment="Stretch" ToolTip.Tip="{Binding TronText}">
+                                            <TextBlock Text="{Binding TronShort}" Classes="mono" FontSize="10.5"
+                                                       Foreground="{Binding ValueForeground}"
+                                                       TextTrimming="CharacterEllipsis"
+                                                       VerticalAlignment="Center" />
+                                        </Border>
+                                    </Grid>
+                                </Border>
+                            </DataTemplate>
+                        </ListBox.ItemTemplate>
+                    </ListBox>
+
+                    <StackPanel Grid.Row="1" IsVisible="{Binding IsEmpty}" Spacing="8"
+                                VerticalAlignment="Center" HorizontalAlignment="Center"
+                                IsHitTestVisible="False">
+                        <TextBlock Text="&#xE8B7;" Classes="glyph" FontSize="40" Foreground="#B4B4B4"
+                                   HorizontalAlignment="Center" />
+                        <TextBlock Text="这个文件夹是空的" FontSize="14"
+                                   Foreground="{StaticResource TextSecondaryBrush}"
+                                   HorizontalAlignment="Center" />
+                        <TextBlock Text="把文件夹拖到这里，或换个位置再看一次" FontSize="12"
+                                   Foreground="{StaticResource TextMutedBrush}"
+                                   HorizontalAlignment="Center" />
+                    </StackPanel>
+                </Grid>
+
+                <!-- 详细信息窗格 -->
+                <Border Grid.Column="1" Width="340" IsVisible="{Binding HasSelectedItem}"
+                        Background="{StaticResource PaneBrush}"
+                        BorderBrush="{StaticResource BorderBrushSoft}" BorderThickness="1,0,0,0">
+                    <Grid RowDefinitions="Auto,Auto,*">
+
+                        <Grid Grid.Row="0" ColumnDefinitions="*,Auto" Margin="14,0,8,0" Height="34">
+                            <TextBlock Text="详细信息" FontSize="12.5" FontWeight="SemiBold"
+                                       Foreground="{StaticResource TextPrimaryBrush}" VerticalAlignment="Center" />
+                            <Button Grid.Column="1" Classes="iconbtn" Width="26" Height="26"
+                                    Click="OnCloseDetailsClick" ToolTip.Tip="关闭 (Esc)">
+                                <TextBlock Text="&#xE711;" Classes="glyph" FontSize="12" Foreground="#5A5A5A" />
+                            </Button>
+                        </Grid>
+
+                        <Border Grid.Row="1" Height="1" Background="{StaticResource BorderBrushSoft}" />
+
+                        <ScrollViewer Grid.Row="2" Padding="14,12,14,14"
+                                      VerticalScrollBarVisibility="Auto"
+                                      HorizontalScrollBarVisibility="Disabled">
+                            <StackPanel Spacing="12">
+
+                                <!-- 名称 -->
+                                <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="9">
+                                    <TextBlock Text="&#xE8B7;" Classes="glyph" FontSize="20"
+                                               Foreground="#C89A2B" VerticalAlignment="Top" Margin="0,1,0,0"
+                                               IsVisible="{Binding SelectedItem.IsDirectory}" />
+                                    <TextBlock Text="&#xE7C3;" Classes="glyph" FontSize="20"
+                                               Foreground="#8A8A8A" VerticalAlignment="Top" Margin="0,1,0,0"
+                                               IsVisible="{Binding SelectedItem.IsFile}" />
+                                    <StackPanel Grid.Column="1" Spacing="2">
+                                        <TextBlock Text="{Binding SelectedItem.Name}" FontSize="13.5"
+                                                   FontWeight="SemiBold" Foreground="{StaticResource TextPrimaryBrush}"
+                                                   TextWrapping="Wrap" />
+                                        <TextBlock Text="{Binding SelectedItem.FullPath}" FontSize="10.5"
+                                                   Classes="mono" Foreground="{StaticResource TextMutedBrush}"
+                                                   TextWrapping="NoWrap" TextTrimming="CharacterEllipsis"
+                                                   ToolTip.Tip="{Binding SelectedItem.FullPath}" />
+                                    </StackPanel>
+                                    <Border Grid.Column="2" Background="#FDE047" CornerRadius="3" Padding="5,1"
+                                            VerticalAlignment="Top" Margin="0,2,0,0"
+                                            IsVisible="{Binding SelectedItem.IsVanity}"
+                                            ToolTip.Tip="{Binding SelectedItem.VanityTip}">
+                                        <TextBlock Text="靓号" FontSize="9" FontWeight="Bold"
+                                                   Foreground="#52400A" />
+                                    </Border>
+                                </Grid>
+
+                                <TextBlock Text="{Binding SelectedItem.VanityReason}" FontSize="11"
+                                           Foreground="{StaticResource WarnTextBrush}" TextWrapping="Wrap"
+                                           IsVisible="{Binding SelectedItem.IsVanity}" />
+
+                                <Border Height="1" Background="{StaticResource BorderBrushSoft}" />
+
+                                <!-- 属性 -->
+                                <Grid ColumnDefinitions="Auto,*,Auto" RowDefinitions="Auto,Auto,Auto"
+                                      RowSpacing="6" ColumnSpacing="12">
+                                    <TextBlock Text="大小" Classes="label" />
+                                    <TextBlock Grid.Column="2" Text="{Binding SelectedItem.SizeText}"
+                                               FontSize="12" Foreground="{StaticResource TextPrimaryBrush}"
+                                               HorizontalAlignment="Right" />
+                                    <TextBlock Grid.Row="1" Text="修改时间" Classes="label" />
+                                    <TextBlock Grid.Row="1" Grid.Column="2"
+                                               Text="{Binding SelectedItem.ModifiedText}" FontSize="12"
+                                               Foreground="{StaticResource TextPrimaryBrush}"
+                                               HorizontalAlignment="Right" />
+                                    <TextBlock Grid.Row="2" Text="类型" Classes="label" />
+                                    <TextBlock Grid.Row="2" Grid.Column="2"
+                                               Text="{Binding SelectedItem.BadgeText}" FontSize="12"
+                                               Foreground="{StaticResource TextPrimaryBrush}"
+                                               HorizontalAlignment="Right" />
+                                </Grid>
+
+                                <Border Height="1" Background="{StaticResource BorderBrushSoft}" />
+
+                                <!-- SHA-256 -->
+                                <Grid ColumnDefinitions="*,Auto">
+                                    <TextBlock Text="SHA-256" Classes="label" VerticalAlignment="Center" />
+                                    <Button Grid.Column="1" Classes="iconbtn" Width="24" Height="24"
+                                            Click="OnCopySelectedHash" ToolTip.Tip="复制 SHA-256"
+                                            IsEnabled="{Binding SelectedItem.HasHash}">
+                                        <TextBlock Text="&#xE8C8;" Classes="glyph" FontSize="13"
+                                                   Foreground="#5A5A5A" />
+                                    </Button>
+                                </Grid>
+                                <Border Classes="field" Padding="9,8" MinHeight="52">
+                                    <Panel>
+                                        <TextBlock Text="{Binding SelectedItem.Sha256}" Classes="mono"
+                                                   FontSize="10.5" TextWrapping="Wrap" LineHeight="16"
+                                                   Foreground="#2E2E2E"
+                                                   IsVisible="{Binding SelectedItem.HasHash}" />
+                                        <TextBlock Text="尚未计算" FontSize="12"
+                                                   Foreground="{StaticResource TextMutedBrush}"
+                                                   IsVisible="{Binding SelectedItem.HasNoHash}" />
+                                    </Panel>
+                                </Border>
+
+                                <Button Classes="accent" Content="{Binding DeriveButtonText}"
+                                        HorizontalAlignment="Stretch"
+                                        HorizontalContentAlignment="Center"
+                                        IsEnabled="{Binding CanDeriveSelected}"
+                                        Command="{Binding DeriveOrStopCommand}" />
+
+                                <!-- 地址 -->
+                                <StackPanel Spacing="10" IsVisible="{Binding SelectedItem.HasWallet}">
+                                    <Border Height="1" Background="{StaticResource BorderBrushSoft}" />
+
+                                    <Grid ColumnDefinitions="*,Auto">
+                                        <TextBlock Text="EVM 地址" Classes="label" VerticalAlignment="Center" />
+                                        <Button Grid.Column="1" Classes="iconbtn" Width="24" Height="24"
+                                                Click="OnCopySelectedEvm" ToolTip.Tip="复制 EVM 地址">
+                                            <TextBlock Text="&#xE8C8;" Classes="glyph" FontSize="13"
+                                                       Foreground="#5A5A5A" />
+                                        </Button>
+                                    </Grid>
+                                    <TextBlock Text="{Binding SelectedItem.EvmAddress}" Classes="mono"
+                                               FontSize="11" TextWrapping="Wrap" LineHeight="17"
+                                               Foreground="{StaticResource TextPrimaryBrush}" />
+
+                                    <Grid ColumnDefinitions="*,Auto">
+                                        <TextBlock Text="TRON 地址" Classes="label" VerticalAlignment="Center" />
+                                        <Button Grid.Column="1" Classes="iconbtn" Width="24" Height="24"
+                                                Click="OnCopySelectedTron" ToolTip.Tip="复制 TRON 地址">
+                                            <TextBlock Text="&#xE8C8;" Classes="glyph" FontSize="13"
+                                                       Foreground="#5A5A5A" />
+                                        </Button>
+                                    </Grid>
+                                    <TextBlock Text="{Binding SelectedItem.TronAddress}" Classes="mono"
+                                               FontSize="11" TextWrapping="Wrap" LineHeight="17"
+                                               Foreground="{StaticResource TextPrimaryBrush}" />
+                                </StackPanel>
+
+                                <Border Background="#FDF3F2" BorderBrush="#F2D7D3" BorderThickness="1"
+                                        CornerRadius="4" Padding="10,8"
+                                        IsVisible="{Binding SelectedItem.HasError}">
+                                    <TextBlock Text="{Binding SelectedItem.ErrorMessage}" FontSize="11.5"
+                                               Foreground="#B3352A" TextWrapping="Wrap" />
+                                </Border>
+
+                                <TextBlock Text="文件夹不能计算指纹，双击可进入。" FontSize="11.5"
+                                           Foreground="{StaticResource TextMutedBrush}" TextWrapping="Wrap"
+                                           IsVisible="{Binding SelectedIsDirectory}" />
+
+                                <Border Background="{StaticResource WarnSoftBrush}"
+                                        BorderBrush="{StaticResource WarnBorderBrush}" BorderThickness="1"
+                                        CornerRadius="4" Padding="10,8">
+                                    <Grid ColumnDefinitions="Auto,*" ColumnSpacing="8">
+                                        <TextBlock Text="&#xE7BA;" Classes="glyph" FontSize="14"
+                                                   Foreground="{StaticResource WarnTextBrush}"
+                                                   VerticalAlignment="Top" Margin="0,1,0,0" />
+                                        <StackPanel Grid.Column="1" Spacing="2">
+                                            <TextBlock Text="安全提示" FontSize="11.5" FontWeight="SemiBold"
+                                                       Foreground="{StaticResource WarnTextBrush}" />
+                                            <TextBlock Text="文件哈希可被任何人重新计算，公开即等于公开私钥。请勿向这些地址转入真实资产。"
+                                                       FontSize="11" Foreground="{StaticResource WarnTextBrush}"
+                                                       TextWrapping="Wrap" LineHeight="16" Opacity="0.9" />
+                                        </StackPanel>
+                                    </Grid>
+                                </Border>
+                            </StackPanel>
+                        </ScrollViewer>
+                    </Grid>
+                </Border>
+            </Grid>
+
+            <!-- ══════════════════ 状态栏 ══════════════════ -->
+            <Grid Grid.Row="2" ColumnDefinitions="Auto,*,Auto" Margin="14,0,14,0" Height="26">
+                <TextBlock Text="{Binding StatusText}" FontSize="12" VerticalAlignment="Center"
+                           Foreground="{StaticResource TextSecondaryBrush}"
+                           TextTrimming="CharacterEllipsis" MaxWidth="760" />
+
+                <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="12"
+                            VerticalAlignment="Center">
+                    <ProgressBar Classes="slim" Minimum="0" Maximum="1" Value="{Binding Progress}"
+                                 IsVisible="{Binding IsProgressVisible}" Width="110"
+                                 VerticalAlignment="Center" />
+                    <TextBlock Text="{Binding SummaryText}" FontSize="11.5"
+                               Foreground="{StaticResource TextMutedBrush}" VerticalAlignment="Center" />
+                </StackPanel>
+            </Grid>
+        </Grid>
+
+        <!-- Toast -->
+        <Border IsVisible="{Binding HasToast}" Background="#E6202020" CornerRadius="4"
+                Padding="13,8" VerticalAlignment="Bottom" HorizontalAlignment="Center"
+                Margin="0,0,0,46" BoxShadow="0 8 16 -4 #40000000">
+            <TextBlock Text="{Binding Toast}" FontSize="12" Foreground="#F7F7F7" />
+        </Border>
+    </Panel>
+</Window>

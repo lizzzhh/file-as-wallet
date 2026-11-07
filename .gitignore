@@ -1,0 +1,24 @@
+# ── 构建产物 ──
+bin/
+obj/
+publish/
+release/
+*.user
+*.suo
+.vs/
+
+# ── 发布包 ──
+*.zip
+
+# ── 运行时本地数据（缓存 / 设置只保存在用户机器上）──
+result-cache.jsonl
+settings.json
+
+# ── 系统与编辑器 ──
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+
+# ── 本地工作日志（WorkBuddy）──
+.workbuddy/
